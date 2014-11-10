@@ -6,6 +6,7 @@
 # description: Port of iprscan5_urllib2.py to Python 3
 # author: Stephen R. Bond
 # email: biologyguy@gmail.com
+# Repository: https://github.com/biologyguy/public_scripts
 # © license: Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
 # derivative work: Yes
 
