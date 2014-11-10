@@ -34,7 +34,7 @@
 #
 # Tested with:
 #  Python 3.4.2 (Mac OS X 10.9.5)
-#  !!Python 2.7.3 (Ubuntu 12.04 LTS)
+#  Python 3.4.0 (Linux Mint 17 LTS)
 #
 # http://www.ebi.ac.uk/Tools/webservices/tutorials/python
 # ======================================================================
@@ -43,17 +43,15 @@ baseUrl = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
 
 # Load libraries
 import platform, os, re, sys, time
-import urllib.parse
-import urllib.request
-import urllib.error
-from optparse import OptionParser
+import urllib.parse, urllib.request, urllib.error
 import xml.etree.ElementTree as eTree
+from optparse import OptionParser
 from io import StringIO
 
 # Set interval for checking status
 checkInterval = 10
 # Output level
-outputLevel = 1
+outputLevel = 2
 # Debug level
 debugLevel = 0
 # Number of option arguments.
@@ -88,6 +86,7 @@ parser.add_option('--status', action="store_true", help='get job status')
 parser.add_option('--resultTypes', action='store_true', help='get result types')
 parser.add_option('--params', action='store_true', help='list input parameters')
 parser.add_option('--paramDetail', help='get details for parameter')
+parser.add_option('--outputLevel', type=int, help='Explicilty set the output verbosity. 0 == quiet, 3 == verbose, 1 and 2 are intermediate.')
 parser.add_option('--quiet', action='store_true', help='decrease output level')
 parser.add_option('--verbose', action='store_true', help='increase output level')
 parser.add_option('--baseURL', default=baseUrl, help='Base URL for service')
@@ -98,13 +97,15 @@ parser.add_option('--debugLevel', type='int', default=debugLevel, help='debug ou
 if len(args) == 0:
     args = [False]
 
-# Increase output level
-if options.verbose:
-    outputLevel += 1
+# Set output level (note order of precedence)
+if options.outputLevel:
+    outputLevel = options.outputLevel
 
-# Decrease output level
+if options.verbose:
+    outputLevel = 3
+
 if options.quiet:
-    outputLevel -= 1
+    outputLevel = 0
 
 # Debug level
 if options.debugLevel:
@@ -117,13 +118,21 @@ def print_debug_message(function_name, message, level):
         print('[%s] %s' % (function_name, message), file=sys.stderr)
 
 
+def print_stdout(message, level, line_break=True):
+    if level <= outputLevel:
+        if line_break:
+            print(message)
+        else:
+            print(message, end="")
+
+
 # User-agent for request (see RFC2616).
 def get_user_agent():
     print_debug_message('get_user_agent', 'Begin', 11)
     # Agent string for urllib.request library.
     urllib_agent = 'Python-urllib/%s' % urllib.request.__version__
     client_revision = '$Revision: ???? $'
-    client_version = '0'
+    client_version = '1.0'
     if len(client_revision) > 11:
         client_version = client_revision[11:-2]
     # Prepend client specific agent string.
@@ -156,7 +165,7 @@ def rest_request(url):
         # Trap exception and output the document to get error message.
         error = prep_xml(ex.file.read().decode())
         descr = error.find("description").text
-        print("%s %s\n%s" % (ex.code, ex.msg, descr), file=sys.stderr)
+        print("%s %s\n%s" % (ex.code, ex.msg, descr))
         sys.exit()
     print_debug_message('rest_request', 'End', 11)
     return result
@@ -275,7 +284,7 @@ def service_get_status(job_id):
 def print_get_status(job_id):
     print_debug_message('print_get_status', 'Begin', 1)
     status = service_get_status(job_id)
-    print(status.decode())
+    print_stdout(status.decode(), 2)
     print_debug_message('print_get_status', 'End', 1)
     
 
@@ -338,7 +347,7 @@ def client_poll(job_id):
     result = 'PENDING'
     while result == 'RUNNING' or result == 'PENDING':
         result = service_get_status(job_id).decode("utf-8")
-        print(result, file=sys.stderr)
+        print_stdout(result, 2)
         if result == 'RUNNING' or result == 'PENDING':
             time.sleep(checkInterval)
     print_debug_message('client_poll', 'End', 1)
@@ -364,8 +373,7 @@ def get_result(job_id):
             result = service_get_result(job_id, resultType.find("identifier").text)
             with open(filename, 'w') as fh:
                 fh.write(result.decode())
-
-            print(filename)
+            print_stdout(filename, 3)
     print_debug_message('get_result', 'End', 1)
 
 
@@ -428,9 +436,11 @@ elif options.email and not options.jobId:
     # Submit the job
     new_job_id = service_run(options.email, options.title, params)
     if options.async:  # Async mode
-        print(new_job_id)
+        print_stdout("Project ID: ", 2, line_break=False)
+        print_stdout(new_job_id, 1)
     else:  # Sync mode
-        print(new_job_id, file=sys.stderr)
+        print_stdout("Project ID: ", 2, line_break=False)
+        print_stdout(new_job_id, 1)
         time.sleep(5)
         get_result(new_job_id)
 # Get job status
