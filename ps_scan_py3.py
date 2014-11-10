@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
-# name: iprscan5_py3.py
+# name: ps_scan_py3.py
 # date: Nov-10-2014
 # version: 1.0
-# description: Port of iprscan5_urllib2.py to Python 3
+# description: Python 3 PROSITE Scan client
 # author: Stephen R. Bond
 # email: biologyguy@gmail.com
 # Repository: https://github.com/biologyguy/public_scripts
