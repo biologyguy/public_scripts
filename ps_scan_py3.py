@@ -64,7 +64,7 @@ usage = "Usage: %prog [options...] [seqFile]"
 description = """Identify protein family, domain and signal signatures in a 
 protein sequence using InterProScan. For more information on InterPro and InterProScan refer to http://www.ebi.ac.uk/interpro/"""
 epilog = """For further information about the InterProScan 5 (REST) web service, see http://www.ebi.ac.uk/Tools/webservices/services/pfa/iprscan5_est."""
-version = "iprscan5_py3.py 1.0 Nov-10-2014"
+version = "ps_scan_py3.py 1.0 Nov-10-2014"
 # Process command-line options
 parser = OptionParser(usage=usage, description=description, epilog=epilog, version=version)
 # Tool specific options
