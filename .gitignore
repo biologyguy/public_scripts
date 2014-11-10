@@ -9,4 +9,4 @@
 .DS_Store
 
 #Test files
-workshop/test_files/*
+test_files/*

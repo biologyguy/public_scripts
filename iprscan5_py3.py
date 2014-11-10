@@ -1,7 +1,18 @@
 #!/usr/bin/python3
-# $Id: iprscan5_py3.py 2773 2014-04-11 11:27:27Z hpm $
+
+# name: iprscan5_py3.py
+# date: Nov-10-2014
+# version: 1.0
+# description: Port of iprscan5_urllib2.py to Python 3
+# author: Stephen R. Bond
+# email: biologyguy@gmail.com
+# © license: Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+# derivative work: Yes
+
 # ======================================================================
-# 
+
+# Derived from:
+# Id: iprscan5_urllib2.py 2773 2014-04-11 11:27:27Z hpm $
 # Copyright 2009-2014 EMBL - European Bioinformatics Institute
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,19 +27,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
-# ======================================================================
-#
-# Ported to Python 3 by Stephen Bond, biologyguy@gmail.com
-# Nov-11-2014
-#
+# See:
+# http://www.ebi.ac.uk/Tools/webservices/services/pfa/iprscan5_rest
 # ======================================================================
 #
 # Tested with:
 #  Python 3.4.2 (Mac OS X 10.9.5)
-#  Python 2.7.3 (Ubuntu 12.04 LTS)
+#  !!Python 2.7.3 (Ubuntu 12.04 LTS)
 #
-# See:
-# http://www.ebi.ac.uk/Tools/webservices/services/pfa/iprscan5_rest
 # http://www.ebi.ac.uk/Tools/webservices/tutorials/python
 # ======================================================================
 # Base URL for service
@@ -57,7 +63,7 @@ usage = "Usage: %prog [options...] [seqFile]"
 description = """Identify protein family, domain and signal signatures in a 
 protein sequence using InterProScan. For more information on InterPro and InterProScan refer to http://www.ebi.ac.uk/interpro/"""
 epilog = """For further information about the InterProScan 5 (REST) web service, see http://www.ebi.ac.uk/Tools/webservices/services/pfa/iprscan5_est."""
-version = "$Id: iprscan5_urllib2.py 2773 2014-04-11 11:27:27Z hpm $"
+version = "iprscan5_py3.py 1.0 Nov-10-2014"
 # Process command-line options
 parser = OptionParser(usage=usage, description=description, epilog=epilog, version=version)
 # Tool specific options
@@ -84,9 +90,12 @@ parser.add_option('--paramDetail', help='get details for parameter')
 parser.add_option('--quiet', action='store_true', help='decrease output level')
 parser.add_option('--verbose', action='store_true', help='increase output level')
 parser.add_option('--baseURL', default=baseUrl, help='Base URL for service')
-parser.add_option('--debugLevel', type='int', default=debugLevel, help='debug output level')
+parser.add_option('--debugLevel', type='int', default=debugLevel, help='debug output level. Levels implemented are [1, 2, 11, 12]')
 
 (options, args) = parser.parse_args()
+
+if len(args) == 0:
+    args = [False]
 
 # Increase output level
 if options.verbose:
@@ -112,7 +121,7 @@ def get_user_agent():
     print_debug_message('get_user_agent', 'Begin', 11)
     # Agent string for urllib.request library.
     urllib_agent = 'Python-urllib/%s' % urllib.request.__version__
-    client_revision = '$Revision: 2773 $'
+    client_revision = '$Revision: ???? $'
     client_version = '0'
     if len(client_revision) > 11:
         client_version = client_revision[11:-2]
@@ -256,7 +265,7 @@ def service_get_status(job_id):
     request_url = '%s/status/%s' % (baseUrl, job_id)
     print_debug_message('service_get_status', 'request_url: %s' % request_url, 2)
     status = rest_request(request_url)
-    print_debug_message('service_get_status', 'status: %s' % status, 2)
+    print_debug_message('service_get_status', 'status: %s' % status.decode(), 2)
     print_debug_message('service_get_status', 'End', 1)
     return status
 
@@ -265,7 +274,7 @@ def service_get_status(job_id):
 def print_get_status(job_id):
     print_debug_message('print_get_status', 'Begin', 1)
     status = service_get_status(job_id)
-    print(status)
+    print(status.decode())
     print_debug_message('print_get_status', 'End', 1)
     
 
@@ -365,6 +374,7 @@ def read_file(filename):
     with open(filename, "r") as ifile:
         data = ifile.read().strip()
         data = re.sub("\*$", "", data)
+        data = re.sub(" \t", "", data)
         sequence = re.sub(">.*\n", "", data)
 
     if re.search("[^A-Za-z\n]", sequence):
@@ -381,6 +391,9 @@ elif options.params:
 # Get parameter details
 elif options.paramDetail:
     print_get_parameter_details(options.paramDetail)
+# Make sure an email address is supplied if submitting a job
+elif args[0] and not options.email:
+    print("Error: You must include an email address when submitting a job. E.g., $: ./iprscan5_py3.py --email YOU@EMAIL.COM my_seq_file.fasta", file=sys.stderr)
 # Submit job
 elif options.email and not options.jobId:
     params = {}
