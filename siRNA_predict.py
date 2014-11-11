@@ -10,6 +10,18 @@
 # Copyright (C) Steve Bond, 2014
 # Contact: biologyguy@gmail.com
 
+"""
+Description:
+Python implementation of siRNA prediction criteria as determined by Reynolds et al., 2004, Nat Biotechnol 22(3):326-330.
+This script will generate equivalent output to the online tool at http://tiny.cc/naus_siRNA_pred. The sense strand cDNA
+is provided as input on the command line, either as a string or FASTA formatted file, and the output is scores for all
+possible 19-mer sequences, as a preformatted table or in CSV format. For a detailed description of the parameters the
+script takes, navigate to the directory containing the program within a terminal window, and run the following command
+(tested using python 2.7.8 on Windows 7, Linux Mint 17, and Mac OS X 10.9):
+
+python ./siRNA_predict.py -h
+
+"""
 import re
 import sys
 import argparse
