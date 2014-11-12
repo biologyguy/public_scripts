@@ -1,43 +1,49 @@
 #!/usr/bin/python3
 
-# name: ps_scan_py3.py
-# date: Nov-10-2014
-# version: 1.0
-# description: Python 3 PROSITE Scan client
-# author: Stephen R. Bond
-# email: biologyguy@gmail.com
-# Repository: https://github.com/biologyguy/public_scripts
-# © license: Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
-# derivative work: Yes
+"""
+name: ps_scan_py3.py
+date: Nov-12-2014
+version: 1.0
+description: Python 3 PROSITE Scan client
+author: Stephen R. Bond
+email: steve.bond@nih.gov
+institute: Computational and Statistical Genomics Branch, Division of Intramural Research,
+           National Human Genome Research Institute, National Institutes of Health
+           Bethesda, MD
+repository: https://github.com/biologyguy/public_scripts
+© license: Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+derivative work: Yes
 
-# ======================================================================
+======================================================================
 
-# Derived from:
-# Id: iprscan5_urllib2.py 2773 2014-04-11 11:27:27Z hpm $
-# Copyright 2009-2014 EMBL - European Bioinformatics Institute
-# 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-# 
-#     http://www.apache.org/licenses/LICENSE-2.0
-# 
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# 
-# See:
-# http://www.ebi.ac.uk/Tools/webservices/services/pfa/iprscan5_rest
-# ======================================================================
-#
-# Tested with:
-#  Python 3.4.2 (Mac OS X 10.9.5)
-#  Python 3.4.0 (Linux Mint 17 LTS)
-#
-# http://www.ebi.ac.uk/Tools/webservices/tutorials/python
-# ======================================================================
+Derived from:
+Id: iprscan5_urllib2.py 2773 2014-04-11 11:27:27Z hpm $
+Copyright 2009-2014 EMBL - European Bioinformatics Institute
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+See:
+http://www.ebi.ac.uk/Tools/webservices/services/pfa/iprscan5_rest
+======================================================================
+
+Tested with:
+Python 3.4.2 (Mac OS X 10.9.5)
+Python 3.4.0 (Linux Mint 17 LTS)
+
+http://www.ebi.ac.uk/Tools/webservices/tutorials/python
+======================================================================
+"""
+
 # Base URL for service
 baseUrl = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
 
@@ -62,18 +68,16 @@ usage = "Usage: %prog [options...] [seqFile]"
 description = """Identify protein family, domain and signal signatures in a 
 protein sequence using InterProScan. For more information on InterPro and InterProScan refer to http://www.ebi.ac.uk/interpro/"""
 epilog = """For further information about the InterProScan 5 (REST) web service, see http://www.ebi.ac.uk/Tools/webservices/services/pfa/iprscan5_est."""
-version = "ps_scan_py3.py 1.0 Nov-10-2014"
+version = "ps_scan_py3.py 1.0 Nov-12-2014"
 # Process command-line options
 parser = OptionParser(usage=usage, description=description, epilog=epilog, version=version)
 # Tool specific options
 parser.add_option('--appl', help='signature methods to use, see --paramDetail appl')
-parser.add_option('--crc', action="store_true", help='enable InterProScan Matches look-up (ignored)')
-parser.add_option('--nocrc', action="store_true", help='disable InterProScan Matches look-up (ignored)')
 parser.add_option('--goterms', action="store_true", help='enable inclusion of GO terms')
 parser.add_option('--nogoterms', action="store_true", help='disable inclusion of GO terms')
 parser.add_option('--pathways', action="store_true", help='enable inclusion of pathway terms')
 parser.add_option('--nopathways', action="store_true", help='disable inclusion of pathway terms')
-parser.add_option('--sequence', help='input sequence file name')
+parser.add_option('--sequence', action="store", help='Input sequence explicitly on command line')
 # General options
 parser.add_option('--email', help='e-mail address')
 parser.add_option('--title', help='job title')
@@ -384,10 +388,11 @@ def read_file(filename):
         data = ifile.read().strip()
         data = re.sub("\*$", "", data)
         data = re.sub(" \t", "", data)
-        sequence = re.sub(">.*\n", "", data)
 
-    if re.search("[^A-Za-z\n]", sequence):
+    seq = re.sub(">.*\n", "", data)  # The server will handle fasta headers, but make sure there are no funny characters in sequence
+    if re.search("[^A-Za-z\n]", seq):
         sys.exit("Error: Invalid characters found in the sequence provided.")
+
     print_debug_message('read_file', 'End', 1)
     return data
 
@@ -406,21 +411,20 @@ elif args[0] and not options.email:
 # Submit job
 elif options.email and not options.jobId:
     params = {}
-    if len(args) > 0:
+    if args[0]:
         if os.access(args[0], os.R_OK):  # Read file into content
             params['sequence'] = read_file(args[0])
         else:  # Argument is a sequence id
             params['sequence'] = args[0]
-    elif options.sequence:  # Specified via option
-        if os.access(options.sequence, os.R_OK):  # Read file into content
-            params['sequence'] = read_file(options.sequence)
-        else:  # Argument is a sequence id
-            params['sequence'] = options.sequence
+    elif options.sequence:  # Passing in the actual sequence on command line
+        sequence = options.sequence.strip()
+        sequence = re.sub("\*$", "", sequence)
+        sequence = re.sub(" \t", "", sequence)
+        if re.search("[^A-Za-z\n]", re.sub(">.*\n", "", sequence)):
+            sys.exit("Error: Invalid characters found in the sequence provided.")
+        params['sequence'] = sequence
+
     # Map flag options to boolean values.
-    #if options.crc:
-    #    params['crc'] = True
-    #elif options.nocrc:
-    #    params['crc'] = False
     if options.goterms:
         params['goterms'] = True
     elif options.nogoterms:
