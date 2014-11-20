@@ -2,7 +2,7 @@
 
 """
 name: ps_scan_py3.py
-date: Nov-12-2014
+date: Nov-20-2014
 version: 1.0
 description: Python 3 PROSITE Scan client
 author: Stephen R. Bond
@@ -44,9 +44,6 @@ http://www.ebi.ac.uk/Tools/webservices/tutorials/python
 ======================================================================
 """
 
-# Base URL for service
-baseUrl = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
-
 # Load libraries
 import platform, os, re, sys, time
 import urllib.parse, urllib.request, urllib.error
@@ -67,8 +64,8 @@ numOpts = len(sys.argv)
 usage = "Usage: %prog [options...] [seqFile]"
 description = """Identify protein family, domain and signal signatures in a 
 protein sequence using InterProScan. For more information on InterPro and InterProScan refer to http://www.ebi.ac.uk/interpro/"""
-epilog = """For further information about the InterProScan 5 (REST) web service, see http://www.ebi.ac.uk/Tools/webservices/services/pfa/iprscan5_est."""
-version = "ps_scan_py3.py 1.0 Nov-12-2014"
+epilog = """For further information about the PROSITE Scan (REST) web service, see http://www.ebi.ac.uk/Tools/webservices/services/pfa/ps_scan_rest"""
+version = "ps_scan_py3.py 1.0 Nov-20-2014"
 # Process command-line options
 parser = OptionParser(usage=usage, description=description, epilog=epilog, version=version)
 # Tool specific options
@@ -84,7 +81,7 @@ parser.add_option('--title', help='job title')
 parser.add_option('--outfile', help='file name for results')
 parser.add_option('--outformat', help='output format for results')
 parser.add_option('--async', action='store_true', help='asynchronous mode')
-parser.add_option('--jobId', help='job identifier')
+parser.add_option('--jobId', action="store", help='job identifier')
 parser.add_option('--polljob', action="store_true", help='get job result')
 parser.add_option('--status', action="store_true", help='get job status')
 parser.add_option('--resultTypes', action='store_true', help='get result types')
@@ -93,10 +90,17 @@ parser.add_option('--paramDetail', help='get details for parameter')
 parser.add_option('--outputLevel', type=int, help='Explicilty set the output verbosity. 0 == quiet, 3 == verbose, 1 and 2 are intermediate.')
 parser.add_option('--quiet', action='store_true', help='decrease output level')
 parser.add_option('--verbose', action='store_true', help='increase output level')
-parser.add_option('--baseURL', default=baseUrl, help='Base URL for service')
+parser.add_option('--service', choices=['prosite_scan', 'interpro'], default='prosite_scan', help='Which EMBL-EBI REST service do you want?')
 parser.add_option('--debugLevel', type='int', default=debugLevel, help='debug output level. Levels implemented are [1, 2, 11, 12]')
 
 (options, args) = parser.parse_args()
+
+# Base URL for service
+if options.service == "prosite_scan":
+    baseUrl = 'http://www.ebi.ac.uk/Tools/services/rest/ps_scan'
+elif options.service == "interpro":
+    baseUrl = 'http://www.ebi.ac.uk/Tools/services/rest/iprscan5'
+
 
 if len(args) == 0:
     args = [False]
@@ -367,16 +371,18 @@ def get_result(job_id):
     result_types = service_get_result_types(job_id)
     for resultType in result_types:
         # Derive the filename for the result
+        identifier = resultType.find("identifier").text
+        file_suffix = resultType.find("fileSuffix").text
         if options.outfile:
-            filename = "%s.%s.%s" % (options.outfile, resultType.find("identifier").text, resultType.find("fileSuffix").text)
+            filename = "%s.%s.%s" % (options.outfile, identifier, file_suffix)
         else:
-            filename = "%s.%s.%s" % (job_id, resultType.find("identifier").text, resultType.find("fileSuffix").text)
+            filename = "%s.%s.%s" % (job_id, identifier, file_suffix)
         # Write a result file
-        if not options.outformat or options.outformat == resultType.find("identifier").text:
+        if not options.outformat or options.outformat == identifier:
             # Get the result
-            result = service_get_result(job_id, resultType.find("identifier").text)
-            with open(filename, 'w') as fh:
-                fh.write(result.decode())
+            result = service_get_result(job_id, identifier)
+            with open(filename, 'wb') as fh:
+                fh.write(result)
             print_stdout(filename, 3)
     print_debug_message('get_result', 'End', 1)
 
@@ -399,17 +405,43 @@ def read_file(filename):
 # No options... print help.
 if numOpts < 2:
     parser.print_help()
+
 # List parameters
 elif options.params:
     print_get_parameters()
+
 # Get parameter details
 elif options.paramDetail:
     print_get_parameter_details(options.paramDetail)
-# Make sure an email address is supplied if submitting a job
-elif args[0] and not options.email:
-    print("Error: You must include an email address when submitting a job. E.g., $: ./iprscan5_py3.py --email YOU@EMAIL.COM my_seq_file.fasta", file=sys.stderr)
+
+
+# Get job status
+elif options.status:
+    if not options.jobId:
+        sys.exit("Error: You must include --jobId to retrieve status.")
+    else:
+        print_get_status(options.jobId)
+
+# List result types for job
+elif options.resultTypes:
+    if not options.jobId:
+        sys.exit("Error: You must include --jobId to retrieve result types.")
+    else:
+        print_get_result_types(options.jobId)
+
+# Get results for job
+elif options.polljob:
+    if not options.jobId:
+        sys.exit("Error: You must include --jobId to poll a job.")
+    else:
+        get_result(options.jobId)
+
 # Submit job
-elif options.email and not options.jobId:
+elif args[0] or options.sequence:
+    # Make sure an email address is supplied if submitting a job
+    if not options.email:
+        sys.exit("Error: You must include an email address when submitting a job. E.g., $: ./iprscan5_py3.py --email YOU@EMAIL.COM my_seq_file.fasta")
+
     params = {}
     if args[0]:
         if os.access(args[0], os.R_OK):  # Read file into content
@@ -447,15 +479,7 @@ elif options.email and not options.jobId:
         print_stdout(new_job_id, 1)
         time.sleep(5)
         get_result(new_job_id)
-# Get job status
-elif options.status and options.jobId:
-    print_get_status(options.jobId)
-# List result types for job
-elif options.resultTypes and options.jobId:
-    print_get_result_types(options.jobId)
-# Get results for job
-elif options.polljob and options.jobId:
-    get_result(options.jobId)
+
 else:
     print('Error: unrecognised argument combination', file=sys.stderr)
     parser.print_help()
