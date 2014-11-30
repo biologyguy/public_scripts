@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 """
 name: ps_scan_py3.py
@@ -45,8 +45,14 @@ http://www.ebi.ac.uk/Tools/webservices/tutorials/python
 """
 
 # Load libraries
-import platform, os, re, sys, time
-import urllib.parse, urllib.request, urllib.error
+import platform
+import os
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
+import urllib.error
 import xml.etree.ElementTree as eTree
 from optparse import OptionParser
 from io import StringIO
@@ -62,9 +68,10 @@ numOpts = len(sys.argv)
 
 # Usage message
 usage = "Usage: %prog [options...] [seqFile]"
-description = """Identify protein family, domain and signal signatures in a 
-protein sequence using InterProScan. For more information on InterPro and InterProScan refer to http://www.ebi.ac.uk/interpro/"""
-epilog = """For further information about the PROSITE Scan (REST) web service, see http://www.ebi.ac.uk/Tools/webservices/services/pfa/ps_scan_rest"""
+description = """Identify protein family, domain and signal signatures in a protein sequence using InterProScan.
+For more information on InterPro and InterProScan refer to http://www.ebi.ac.uk/interpro/"""
+epilog = """For further information about the PROSITE Scan (REST) web service, see
+http://www.ebi.ac.uk/Tools/webservices/services/pfa/ps_scan_rest"""
 version = "ps_scan_py3.py 1.0 Nov-20-2014"
 # Process command-line options
 parser = OptionParser(usage=usage, description=description, epilog=epilog, version=version)
@@ -87,11 +94,14 @@ parser.add_option('--status', action="store_true", help='get job status')
 parser.add_option('--resultTypes', action='store_true', help='get result types')
 parser.add_option('--params', action='store_true', help='list input parameters')
 parser.add_option('--paramDetail', help='get details for parameter')
-parser.add_option('--outputLevel', type=int, help='Explicilty set the output verbosity. 0 == quiet, 3 == verbose, 1 and 2 are intermediate.')
+parser.add_option('--outputLevel', type=int,
+                  help='Explicilty set the output verbosity. 0 == quiet, 3 == verbose, 1 and 2 are intermediate.')
 parser.add_option('--quiet', action='store_true', help='decrease output level')
 parser.add_option('--verbose', action='store_true', help='increase output level')
-parser.add_option('--service', choices=['prosite_scan', 'interpro'], default='prosite_scan', help='Which EMBL-EBI REST service do you want?')
-parser.add_option('--debugLevel', type='int', default=debugLevel, help='debug output level. Levels implemented are [1, 2, 11, 12]')
+parser.add_option('--service', choices=['prosite_scan', 'interpro'], default='prosite_scan',
+                  help='Which EMBL-EBI REST service do you want?')
+parser.add_option('--debugLevel', type='int', default=debugLevel,
+                  help='debug output level. Levels implemented are [1, 2, 11, 12]')
 
 (options, args) = parser.parse_args()
 
@@ -185,7 +195,8 @@ def print_get_parameters():
     request_url = '%s/parameters' % baseUrl
     print_debug_message('print_get_parameters', 'request_url: %s' % request_url, 2)
     xml_doc = prep_xml(rest_request(request_url).decode())
-    print("The following are the parameters you can set for input. Use --paramDetail <param> flag to get more details about each.")
+    print("The following are the parameters you can set for input. Use --paramDetail <param> flag to get "
+          "more details about each.")
     for next_id in xml_doc.findall("id"):
         print("\t%s" % next_id.text)
     print_debug_message('print_get_parameters', 'End', 1)    
@@ -395,7 +406,7 @@ def read_file(filename):
         data = re.sub("\*$", "", data)
         data = re.sub(" \t", "", data)
 
-    seq = re.sub(">.*\n", "", data)  # The server will handle fasta headers, but make sure there are no funny characters in sequence
+    seq = re.sub(">.*\n", "", data)  # The server will handle FASTA headers, but no funny characters in sequence
     if re.search("[^A-Za-z\n]", seq):
         sys.exit("Error: Invalid characters found in the sequence provided.")
 
@@ -440,7 +451,8 @@ elif options.polljob:
 elif args[0] or options.sequence:
     # Make sure an email address is supplied if submitting a job
     if not options.email:
-        sys.exit("Error: You must include an email address when submitting a job. E.g., $: ./iprscan5_py3.py --email YOU@EMAIL.COM my_seq_file.fasta")
+        sys.exit("Error: You must include an email address when submitting a job. E.g., $: ./iprscan5_py3.py --email "
+                 "YOU@EMAIL.COM my_seq_file.fasta")
 
     params = {}
     if args[0]:
