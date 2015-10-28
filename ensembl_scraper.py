@@ -9,7 +9,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
 details at http://www.gnu.org/licenses/.
 
-name: siRNA_predict.py
+name: ensembl_scraper.py
 date: Jan-18-2015
 version: 1.1
 author: Stephen R. Bond
